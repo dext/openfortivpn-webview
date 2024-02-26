@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -x
+set -e
+set -o pipefail
+
+cd openfortivpn-webview-electron
+
+while true; do npx electron index.js access.dext.pub --url-regex '/sslvpn/portal/index.html' | sudo openfortivpn access.dext.pub --cookie-on-stdin --pppd-use-peerdns=1; sleep 2; done
