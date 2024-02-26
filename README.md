@@ -1,3 +1,65 @@
+# Auto-connect to FortiGate VPN
+
+This uses an OSS client for connecting to FortiGate that builds on top of the PPP protocol (uses `pppd` under the hood). It's fast.
+
+## Install requirements
+
+- A Node.js version
+- https://github.com/adrienverge/openfortivpn (`brew install openfortivpn` on macOS, there are packages for Linux), or, alternatively, openconnect (`brew install openconnect`)
+- `git clone https://github.com/dext/openfortivpn-webview && cd openfortivpn-webview/openfortivpn-webview-electron && npm install` (this should be built and distributed in a nicer way, as an electron app.)
+- Add `openfortivpn` (or `openconnect`) to your sudoers file (it needs sudo to add routes, modify DNS, etc.) Save this in `/etc/sudoers.d/openfortivpn`:
+
+  ```
+  Cmnd_Alias  OPENFORTIVPN = /opt/homebrew/bin/openfortivpn
+
+  ALL       ALL = (ALL) NOPASSWD: OPENFORTIVPN
+  ```
+  
+  Make sure to adjust the path if you're not on macOS and/or haven't installed openfortivpn via Homebrew.
+
+- Add the following to `/etc/ppp/peers/dext` to customise the behaviour of pppd (to enforce quick connection downtime detection) – it essentially overrides the params openfortivpn uses to connect to the VPN (I've taken them from the openfortivpn repo) and adds the following: `lcp-echo-interval 2` and `lcp-echo-failure 3` (see `man pppd` to understand how these two work). Paste the following:
+
+  ```
+  230400
+  :169.254.2.1
+  noipdefault
+  ipcp-accept-local
+  noaccomp
+  noauth
+  default-asyncmap
+  nopcomp
+  receive-all
+  nodefaultroute
+  nodetach
+  lcp-max-configure 40
+  mru 1354
+  lcp-echo-interval 2
+  lcp-echo-failure 3
+  usepeerdns
+  ```
+
+  `usepeerdns` fixes the DNS resoltion on macOS, as suggested here: [make DNS resolution work on macOS](https://github.com/adrienverge/openfortivpn/issues/534).
+
+## Run it
+
+### Preferred: with `openfortivpn` (with auto-connect)
+
+From within the cloned repo:
+
+```
+./connect-dext
+```
+
+### With `openconnect` (quick and dirty but auto-connects)
+
+```
+cd openfortivpn-webview/openfortivpn-webview-electron/ && while true; do npx electron index.js access.dext.pub --url-regex '/sslvpn/portal/index.html' | sudo openconnect access.dext.pub --protocol=fortinet --cookie-on-stdin --reconnect-timeout=5 --force-dpd=5; sleep 5; done
+```
+
+---
+
+## Original readme of openfortivpn-webview
+
 Application to perform the SAML single sing-on and easily retrieve the
 `SVPNCOOKIE` needed by [`openfortivpn`](https://github.com/adrienverge/openfortivpn/).
 
