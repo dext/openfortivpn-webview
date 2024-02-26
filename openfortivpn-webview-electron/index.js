@@ -145,6 +145,17 @@ app.whenReady().then(() => {
     process.exit(argv['keep-open'] ? 0 : 1);
   });
 
+  ['did-fail-load', 'did-fail-provisional-load'].forEach(event => {
+    window.webContents.on(event, (e, errorCode, errorDescription, validatedURL) => {
+      process.stderr.write(`Failed to load ${validatedURL}: ${errorCode} ${errorDescription}\n`);
+      process.exit(1);
+    });
+  });
+
+  window.on('close', function() {
+    process.exit(argv['keep-open'] ? 0 : 1);
+  });
+
   const menu = Menu.buildFromTemplate([{
     label: "File",
     submenu: [
